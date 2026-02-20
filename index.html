@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Кот-кликер</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --glass: rgba(255,255,255,.08);
+      --glass2: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 900px at 30% 20%, #1a2a55 0%, var(--bg) 55%, #070b16 100%); color:var(--text); overflow:hidden;}
+    .wrap{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+
+    .card{
+      width:min(520px, 94vw);
+      aspect-ratio: 3 / 4;
+      border-radius:24px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 24px 80px rgba(0,0,0,.45);
+      overflow:hidden;
+      position:relative;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Фото + кликабельная зона */
+    .photo{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.15);
+    }
+
+    /* SVG растягивается под карточку и сохраняет пропорции фото */
+    svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    /* Невидимая зона клика по голове кота */
+    .hit{
+      fill: rgba(0,0,0,0);          /* полностью прозрачная */
+      cursor: pointer;
+      pointer-events: all;
+    }
+
+    /* Если хочешь увидеть область для настройки — временно включи */
+    /* .hit { fill: rgba(255,0,0,.25); stroke: rgba(255,0,0,.6); stroke-width: 2; } */
+
+    /* Подсказка сверху */
+    .hint{
+      position:absolute;
+      left:14px; right:14px; top:14px;
+      padding:10px 12px;
+      border-radius:16px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.10);
+      font-size:14px;
+      line-height:1.25;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      backdrop-filter: blur(8px);
+      user-select:none;
+      pointer-events:none;
+    }
+    .hint b{font-weight:700}
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size:12px;
+      opacity:.9;
+      white-space:nowrap;
+    }
+
+    /* “МЯУ” текст */
+    .meow{
+      position:absolute;
+      left:0; top:0;
+      transform: translate(-50%,-50%);
+      padding:10px 14px;
+      border-radius:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.10));
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      font-weight: 900;
+      letter-spacing: .5px;
+      color: rgba(255,255,255,.96);
+      text-shadow: 0 2px 12px rgba(0,0,0,.35);
+      user-select:none;
+      pointer-events:none;
+      opacity:0;
+      animation: pop 900ms ease forwards;
+      will-change: transform, opacity;
+    }
+    .meow::after{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      border-radius:inherit;
+      background: radial-gradient(80px 60px at 20% 20%, rgba(255,255,255,.22), transparent 60%),
+                  radial-gradient(120px 90px at 80% 30%, rgba(120,200,255,.18), transparent 60%),
+                  radial-gradient(100px 70px at 50% 90%, rgba(255,160,120,.18), transparent 60%);
+      z-index:-1;
+    }
+    @keyframes pop{
+      0%   { opacity:0; transform: translate(-50%,-50%) scale(.85); }
+      25%  { opacity:1; transform: translate(-50%,-58%) scale(1.02); }
+      70%  { opacity:1; transform: translate(-50%,-78%) scale(1.00); }
+      100% { opacity:0; transform: translate(-50%,-92%) scale(.98); }
+    }
+
+    /* Мягкая подсветка при тапе (не обязательно) */
+    .flash{
+      position:absolute; inset:0;
+      background: radial-gradient(380px 260px at 60% 35%, rgba(255,255,255,.15), transparent 65%);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 180ms ease;
+    }
+    .card.tapped .flash{ opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div class="photo">
+        <!--
+          ВАЖНО:
+          - cat.jpg должен лежать рядом с index.html
+          - Зона клика (circle) стоит на голове кота.
+          Если у тебя чуть смещено — просто поправь cx/cy/r ниже.
+        -->
+        <svg viewBox="0 0 1000 1333" preserveAspectRatio="xMidYMid slice" aria-label="Кот">
+          <image href="cat.jpg" x="0" y="0" width="1000" height="1333" />
+
+          <!-- Зона клика по голове кота (подобрана под это фото) -->
+          <!-- Если не попадает: включи подсветку в CSS (.hit ...) и подвинь cx/cy/r -->
+          <circle class="hit" id="catHead" cx="440" cy="710" r="140"></circle>
+        </svg>
+      </div>
+
+      <div class="flash"></div>
+
+      <div class="hint">
+        <div>Тапни по <b>голове кота</b> — появится “мяу” и звук 🐾</div>
+        <div class="badge">GitHub Pages</div>
+      </div>
+
+      <audio id="meowAudio" preload="auto">
+        <source src="meow.mp3" type="audio/mpeg" />
+      </audio>
+    </div>
+  </div>
+
+  <script>
+    const card = document.getElementById('card');
+    const hit = document.getElementById('catHead');
+    const audio = document.getElementById('meowAudio');
+
+    function rand(min, max){ return Math.random()*(max-min)+min; }
+
+    function spawnMeow(){
+      const el = document.createElement('div');
+      el.className = 'meow';
+      el.textContent = 'мяу';
+
+      // Случайная позиция по экрану (в пределах карточки)
+      const rect = card.getBoundingClientRect();
+      const x = rand(rect.left + rect.width*0.12, rect.left + rect.width*0.88);
+      const y = rand(rect.top + rect.height*0.18, rect.top + rect.height*0.86);
+
+      el.style.left = (x - rect.left) + 'px';
+      el.style.top  = (y - rect.top) + 'px';
+
+      card.appendChild(el);
+
+      // убрать через 1 сек
+      setTimeout(() => el.remove(), 1100);
+    }
+
+    async function playMeow(){
+      try{
+        audio.currentTime = 0;
+        await audio.play(); // на iOS должно быть внутри клика — у нас так и есть
+      }catch(e){
+        // Если Safari блокирует — обычно решается тем, что первый звук запускают тапом (что уже происходит)
+        // Можно просто игнорировать
+      }
+    }
+
+    function tap(){
+      card.classList.add('tapped');
+      setTimeout(()=>card.classList.remove('tapped'), 180);
+
+      spawnMeow();
+      playMeow();
+    }
+
+    // клик/тап только по голове кота
+    hit.addEventListener('click', tap, { passive:true });
+    hit.addEventListener('touchstart', (e)=>{ /* для iOS быстрее */ tap(); }, { passive:true });
+  </script>
+</body>
+</html>
